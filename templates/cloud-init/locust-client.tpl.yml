@@ -1,0 +1,64 @@
+#cloud-config
+package_upgrade: true
+package_reboot_if_required: true
+
+users:
+- name: ${admin_user}
+  sudo: ALL=(ALL) NOPASSWD:ALL
+  ssh_authorized_keys:
+  - ${ssh_public_key}
+- name: locust
+  shell: /bin/false
+  system: true
+
+packages:
+- git
+- python3-pip
+
+write_files:
+- path: /opt/locust/Locustfile.py
+  content: |
+    ${replace(locustfile, "\n", "\n    ")}
+- path: /etc/systemd/system/locust-client.service
+  content: |
+    [Unit]
+    Description="Locust Client"
+    Documentation=https://docs.locust.io/en/stable/
+    Requires=network-online.target
+    After=network-online.target
+    StartLimitIntervalSec=30
+    StartLimitBurst=3
+
+    [Service]
+    User=locust
+    Group=locust
+    ExecStart=/usr/local/bin/locust -f /opt/locust/Locustfile.py --slave --master-host=${server_address}
+    ExecReload=/bin/kill --signal HUP $MAINPID
+    NoNewPrivileges=yes
+    KillMode=process
+    KillSignal=SIGINT
+    Restart=on-failure
+    RestartSec=5
+    TimeoutStopSec=30
+    StartLimitInterval=60
+    StartLimitIntervalSec=60
+    StartLimitBurst=3
+
+    [Install]
+    WantedBy=multi-user.target
+
+runcmd:
+# Install Locust
+- pip3 install locust
+# Enable the service
+- systemctl start locust-client; systemctl enable locust-client
+
+output: 
+  all: '| tee -a /var/log/cloud-init-output.log'
+
+power_state:
+  delay: now
+  mode: reboot
+  message: Rebooting agent following installation of all features
+  timeout: 600
+  condition: True

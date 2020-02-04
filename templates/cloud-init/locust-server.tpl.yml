@@ -1,0 +1,76 @@
+#cloud-config
+package_upgrade: true
+package_reboot_if_required: true
+
+users:
+- name: ${admin_user}
+  sudo: ALL=(ALL) NOPASSWD:ALL
+  ssh_authorized_keys:
+  - ${ssh_public_key}
+- name: locust
+  shell: /bin/false
+  system: true
+
+packages:
+- git
+- curl
+- python3-pip
+
+write_files:
+- path: /opt/locust/Locustfile.py
+  content: |
+    ${replace(locustfile, "\n", "\n    ")}
+- path: /etc/systemd/system/locust-server.service
+  content: |
+    [Unit]
+    Description="Locust Server"
+    Documentation=https://docs.locust.io/en/stable/
+    Requires=network-online.target
+    After=network-online.target
+    StartLimitIntervalSec=30
+    StartLimitBurst=3
+
+    [Service]
+    User=locust
+    Group=locust
+    ExecStart=/usr/local/bin/locust -f /opt/locust/Locustfile.py --csv /mnt/${storage_share_name}/locust --master
+    ExecReload=/bin/kill --signal HUP $MAINPID
+    NoNewPrivileges=yes
+    KillMode=process
+    KillSignal=SIGINT
+    Restart=on-failure
+    RestartSec=5
+    TimeoutStopSec=30
+    StartLimitInterval=60
+    StartLimitIntervalSec=60
+    StartLimitBurst=3
+
+    [Install]
+    WantedBy=multi-user.target
+- path: /etc/smbcredentials/${storage_share_name}.cred
+  permissions: 600
+  content: |
+    username=${storage_account_name}
+    password=${storage_share_key}
+
+mounts:
+- [ "//${storage_share_endpoint}/${storage_share_name}", "/mnt/${storage_share_name}", "cifs", "nofail,vers=3.0,credentials=/etc/smbcredentials/${storage_share_name}.cred,dir_mode=0777,file_mode=0777,serverino" ]
+
+
+runcmd:
+# Install azure-cli
+- curl -sL https://aka.ms/InstallAzureCLIDeb | bash
+# Install Locust
+- pip3 install locust
+# Enable the service
+- systemctl start locust-server; systemctl enable locust-server
+
+output: 
+  all: '| tee -a /var/log/cloud-init-output.log'
+
+power_state:
+  delay: now
+  mode: reboot
+  message: Rebooting agent following installation of all features
+  timeout: 600
+  condition: True
