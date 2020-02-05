@@ -7,7 +7,10 @@ locals {
   // Generate name => location map of VMs
   client_vms = {
     for s in setproduct(local.client_locations, range(var.vm_count)) :
-    format("%s-%s-client-vm%g", var.resource_prefix, replace(s[0], " ", ""), s[1] + 1) => s[0]
+    format("%s-%s-client-vm%g", var.resource_prefix, replace(s[0], " ", ""), s[1] + 1) => {
+      vnet = format("%s-%s-client-vnet", var.resource_prefix, replace(s[0], " ", ""))
+      location = s[0]
+    }
   }
 }
 
@@ -81,8 +84,8 @@ resource "azurerm_public_ip" "main_client" {
   for_each = local.client_vms
 
   name                = "${each.key}-pip"
-  resource_group_name = azurerm_virtual_network.main_client[each.value].resource_group_name
-  location            = azurerm_virtual_network.main_client[each.value].location
+  resource_group_name = azurerm_virtual_network.main_client[each.value.location].resource_group_name
+  location            = azurerm_virtual_network.main_client[each.value.location].location
   tags                = local.tags
 
   allocation_method = "Dynamic"
@@ -93,13 +96,13 @@ resource "azurerm_network_interface" "main_client" {
   for_each = local.client_vms
 
   name                = "${each.key}-nic"
-  resource_group_name = azurerm_virtual_network.main_client[each.value].resource_group_name
-  location            = azurerm_virtual_network.main_client[each.value].location
+  resource_group_name = azurerm_virtual_network.main_client[each.value.location].resource_group_name
+  location            = azurerm_virtual_network.main_client[each.value.location].location
   tags                = local.tags
 
   ip_configuration {
     name                          = "ipconfig"
-    subnet_id                     = azurerm_subnet.main_client[each.value].id
+    subnet_id                     = azurerm_subnet.main_client[each.value.location].id
     private_ip_address_allocation = "Dynamic"
     public_ip_address_id          = azurerm_public_ip.main_client[each.key].id
   }
@@ -109,8 +112,8 @@ resource "azurerm_virtual_machine" "main_client" {
   for_each = local.client_vms
 
   name                = each.key
-  resource_group_name = azurerm_virtual_network.main_client[each.value].resource_group_name
-  location            = azurerm_virtual_network.main_client[each.value].location
+  resource_group_name = azurerm_virtual_network.main_client[each.value.location].resource_group_name
+  location            = azurerm_virtual_network.main_client[each.value.location].location
   tags                = local.tags
 
   vm_size                          = var.vm_size
@@ -121,14 +124,13 @@ resource "azurerm_virtual_machine" "main_client" {
   os_profile {
     computer_name  = each.key
     admin_username = var.vm_username
-    # TODO: Parameterise the values in here
     custom_data = templatefile(
       "${path.module}/templates/cloud-init/locust-client.tpl.yml",
       {
         admin_user     = var.vm_username
         ssh_public_key = tls_private_key.main_ssh.public_key_openssh
 
-        locustfile = file("${path.module}/files/locust/Locustfile.py")
+        locustfile = file(var.locustfile)
 
         server_address = azurerm_network_interface.main_server.private_ip_address
       }
