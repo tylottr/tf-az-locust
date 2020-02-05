@@ -225,7 +225,7 @@ locals {
     [var.additional_location]
   )
 
-  // Generate list of VMs
+  // Generate name => location map of VMs
   client_vms = {
     for s in setproduct(local.client_locations, range(var.vm_count)) :
     format("%s-%s-client-vm%g", var.resource_prefix, replace(s[0], " ", ""), s[1] + 1) => s[0]
