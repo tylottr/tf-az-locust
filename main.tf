@@ -32,7 +32,7 @@ resource "local_file" "main_ssh_private" {
 # Resources
 ## Resource Group
 resource "azurerm_resource_group" "main" {
-  name     = "${var.resource_prefix}-rg"
+  name     = "${local.resource_prefix}-rg"
   location = var.location
   tags     = local.tags
 }

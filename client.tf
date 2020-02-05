@@ -7,7 +7,7 @@ locals {
   client_vnets = {
     for l in range(length(local.client_locations)):
     local.client_locations[l] => {
-      name = format("%s-%s-client-vnet", var.resource_prefix, replace(local.client_locations[l], " ", ""))
+      name = format("%s-%s-client-vnet", local.resource_prefix, replace(local.client_locations[l], " ", ""))
       address_space = format("10.%g.0.0/24", l + 1)
     }
   }
@@ -15,8 +15,8 @@ locals {
   // Generate name => { vnet, location } map of VMs
   client_vms = {
     for s in setproduct(local.client_locations, range(var.vm_count)) :
-    format("%s-%s-client-vm%g", var.resource_prefix, replace(s[0], " ", ""), s[1] + 1) => {
-      vnet = format("%s-%s-client-vnet", var.resource_prefix, replace(s[0], " ", ""))
+    format("%s-%s-client-vm%g", local.resource_prefix, replace(s[0], " ", ""), s[1] + 1) => {
+      vnet = format("%s-%s-client-vnet", local.resource_prefix, replace(s[0], " ", ""))
       location = s[0]
     }
   }
@@ -26,7 +26,7 @@ locals {
 resource "azurerm_network_security_group" "main_client" {
   for_each = toset(local.client_locations)
 
-  name                = "${var.resource_prefix}-${replace(each.value, " ", "")}-client-nsg"
+  name                = "${local.resource_prefix}-${replace(each.value, " ", "")}-client-nsg"
   resource_group_name = azurerm_virtual_network.main_client[each.value].resource_group_name
   location            = azurerm_virtual_network.main_client[each.value].location
   tags                = merge(local.tags, { locustRole = "Client" })

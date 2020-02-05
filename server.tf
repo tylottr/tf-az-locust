@@ -2,7 +2,7 @@
 // Server
 ## Storage
 resource "azurerm_storage_account" "main" {
-  name                = lower(replace("${var.resource_prefix}${random_integer.entropy.result}sa", "/[-_]/", ""))
+  name                = lower(replace("${local.resource_prefix}${random_integer.entropy.result}sa", "/[-_]/", ""))
   resource_group_name = azurerm_resource_group.main.name
   location            = azurerm_resource_group.main.location
   tags                = merge(local.tags, { locustRole = "Storage" })
@@ -32,7 +32,7 @@ resource "azurerm_role_assignment" "main" {
 
 ## Network
 resource "azurerm_network_security_group" "main_server" {
-  name                = "${var.resource_prefix}-server-nsg"
+  name                = "${local.resource_prefix}-server-nsg"
   resource_group_name = azurerm_virtual_network.main_server.resource_group_name
   location            = azurerm_virtual_network.main_server.location
   tags                = merge(local.tags, { locustRole = "Server" })
@@ -65,7 +65,7 @@ resource "azurerm_network_security_group" "main_server" {
 }
 
 resource "azurerm_virtual_network" "main_server" {
-  name                = "${var.resource_prefix}-server-vnet"
+  name                = "${local.resource_prefix}-server-vnet"
   resource_group_name = azurerm_resource_group.main.name
   location            = azurerm_resource_group.main.location
   tags                = merge(local.tags, { locustRole = "Server" })
@@ -92,17 +92,17 @@ resource "azurerm_subnet_network_security_group_association" "main_server" {
 
 ## Compute
 resource "azurerm_public_ip" "main_server" {
-  name                = "${var.resource_prefix}-server-pip"
+  name                = "${local.resource_prefix}-server-pip"
   resource_group_name = azurerm_virtual_network.main_server.resource_group_name
   location            = azurerm_virtual_network.main_server.location
   tags                = merge(local.tags, { locustRole = "Server" })
 
   allocation_method = "Dynamic"
-  domain_name_label = lower("${var.resource_prefix}-server")
+  domain_name_label = lower("${local.resource_prefix}-server")
 }
 
 resource "azurerm_network_interface" "main_server" {
-  name                = "${var.resource_prefix}-server-nic"
+  name                = "${local.resource_prefix}-server-nic"
   resource_group_name = azurerm_virtual_network.main_server.resource_group_name
   location            = azurerm_virtual_network.main_server.location
   tags                = merge(local.tags, { locustRole = "Server" })
@@ -116,7 +116,7 @@ resource "azurerm_network_interface" "main_server" {
 }
 
 resource "azurerm_virtual_machine" "main_server" {
-  name                = "${var.resource_prefix}-server-vm"
+  name                = "${local.resource_prefix}-server-vm"
   resource_group_name = azurerm_virtual_network.main_server.resource_group_name
   location            = azurerm_virtual_network.main_server.location
   tags                = merge(local.tags, { locustRole = "Server" })
@@ -127,7 +127,7 @@ resource "azurerm_virtual_machine" "main_server" {
   delete_data_disks_on_termination = true
 
   os_profile {
-    computer_name  = "${var.resource_prefix}-server-vm"
+    computer_name  = "${local.resource_prefix}-server-vm"
     admin_username = var.vm_username
     custom_data = templatefile(
       "${path.module}/templates/cloud-init/locust-server.tpl.yml",
@@ -153,7 +153,7 @@ resource "azurerm_virtual_machine" "main_server" {
   }
 
   storage_os_disk {
-    name              = "${var.resource_prefix}-server-osdisk"
+    name              = "${local.resource_prefix}-server-osdisk"
     caching           = "ReadWrite"
     create_option     = "FromImage"
     disk_size_gb      = local.vm_disk_size
