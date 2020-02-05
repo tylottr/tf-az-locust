@@ -20,7 +20,7 @@ resource "azurerm_network_security_group" "main_client" {
   name                = "${var.resource_prefix}-${replace(each.value, " ", "")}-client-nsg"
   resource_group_name = azurerm_virtual_network.main_client[each.value].resource_group_name
   location            = azurerm_virtual_network.main_client[each.value].location
-  tags                = local.tags
+  tags                = merge(local.tags, { locustRole = "Client" })
 }
 
 resource "azurerm_virtual_network" "main_client" {
@@ -29,7 +29,7 @@ resource "azurerm_virtual_network" "main_client" {
   name                = "${var.resource_prefix}-${replace(each.value, " ", "")}-client-vnet"
   resource_group_name = azurerm_resource_group.main.name
   location            = each.value
-  tags                = local.tags
+  tags                = merge(local.tags, { locustRole = "Client" })
 
   // TODO: Work on something to dynamically allocate location better.
   address_space = var.location == each.value ? ["10.1.0.0/24"] : ["10.2.0.0/24"]
@@ -85,7 +85,7 @@ resource "azurerm_public_ip" "main_client" {
   name                = "${each.key}-pip"
   resource_group_name = azurerm_virtual_network.main_client[each.value.location].resource_group_name
   location            = azurerm_virtual_network.main_client[each.value.location].location
-  tags                = local.tags
+  tags                = merge(local.tags, { locustRole = "Client" })
 
   allocation_method = "Dynamic"
   domain_name_label = lower(each.key)
@@ -97,7 +97,7 @@ resource "azurerm_network_interface" "main_client" {
   name                = "${each.key}-nic"
   resource_group_name = azurerm_virtual_network.main_client[each.value.location].resource_group_name
   location            = azurerm_virtual_network.main_client[each.value.location].location
-  tags                = local.tags
+  tags                = merge(local.tags, { locustRole = "Client" })
 
   ip_configuration {
     name                          = "ipconfig"
@@ -113,7 +113,7 @@ resource "azurerm_virtual_machine" "main_client" {
   name                = each.key
   resource_group_name = azurerm_virtual_network.main_client[each.value.location].resource_group_name
   location            = azurerm_virtual_network.main_client[each.value.location].location
-  tags                = local.tags
+  tags                = merge(local.tags, { locustRole = "Client" })
 
   vm_size                          = var.vm_size
   network_interface_ids            = [azurerm_network_interface.main_client[each.key].id]
