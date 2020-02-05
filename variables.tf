@@ -70,7 +70,7 @@ variable "additional_locations" {
 variable "locustfile" {
   description = "The location of a Locustfile used for load testing"
   type        = string
-  default     = "files/locust/Locustfile.py"
+  default     = "files/Locustfile.py"
 }
 
 # Locals
