@@ -36,6 +36,8 @@ These are the variables used along with their defaults. For any without a value 
 |additional_locations|Additional locations to deploy to|null|
 |locustfile|The location of a Locustfile used for load testing|files/locust/Locustfile.py|
 
+> At current only one additional location is supported. Please see line 34 in client.tf for the exact reason.
+
 Outputs
 -------
 
