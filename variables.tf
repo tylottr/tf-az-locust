@@ -76,7 +76,7 @@ variable "vm_count" {
 variable "additional_location" {
   description = "An additional location to deploy to"
   type        = string
-  default     = "West Europe"
+  default     = null
 }
 
 variable "locustfile" {

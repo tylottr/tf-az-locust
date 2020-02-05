@@ -220,10 +220,7 @@ resource "azurerm_virtual_machine" "main_server" {
 locals {
   // TODO: Update this to additional_locations to support more locations
   // Merge location and additional_locations
-  client_locations = setunion(
-    [var.location],
-    [var.additional_location]
-  )
+  client_locations = var.additional_location != null ? setunion([var.location], [var.additional_location]) : toset([var.location])
 
   // Generate name => location map of VMs
   client_vms = {
