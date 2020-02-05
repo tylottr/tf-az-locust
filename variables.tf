@@ -62,8 +62,8 @@ variable "vm_count" {
 }
 
 variable "additional_locations" {
-  description = "Set of additional locations to deploy to"
-  type        = set(string)
+  description = "List of additional locations to deploy to"
+  type        = list(string)
   default     = null
 }
 

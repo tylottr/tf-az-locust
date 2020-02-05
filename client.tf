@@ -1,9 +1,18 @@
 // Clients
 locals {
   // Merge location and additional_locations
-  client_locations = var.additional_locations != null ? setunion([var.location], var.additional_locations) : toset([var.location])
+  client_locations = var.additional_locations != null ? concat([var.location], var.additional_locations) : [var.location]
 
-  // Generate name => location map of VMs
+  // Generate name => { name, address_space } map of VNets
+  client_vnets = {
+    for l in range(length(local.client_locations)):
+    local.client_locations[l] => {
+      name = format("%s-%s-client-vnet", var.resource_prefix, replace(local.client_locations[l], " ", ""))
+      address_space = format("10.%g.0.0/24", l + 1)
+    }
+  }
+
+  // Generate name => { vnet, location } map of VMs
   client_vms = {
     for s in setproduct(local.client_locations, range(var.vm_count)) :
     format("%s-%s-client-vm%g", var.resource_prefix, replace(s[0], " ", ""), s[1] + 1) => {
@@ -15,7 +24,7 @@ locals {
 
 ## Network
 resource "azurerm_network_security_group" "main_client" {
-  for_each = local.client_locations
+  for_each = toset(local.client_locations)
 
   name                = "${var.resource_prefix}-${replace(each.value, " ", "")}-client-nsg"
   resource_group_name = azurerm_virtual_network.main_client[each.value].resource_group_name
@@ -24,19 +33,18 @@ resource "azurerm_network_security_group" "main_client" {
 }
 
 resource "azurerm_virtual_network" "main_client" {
-  for_each = local.client_locations
+  for_each = toset(local.client_locations)
 
-  name                = "${var.resource_prefix}-${replace(each.value, " ", "")}-client-vnet"
+  name                = local.client_vnets[each.value].name
   resource_group_name = azurerm_resource_group.main.name
   location            = each.value
   tags                = merge(local.tags, { locustRole = "Client" })
 
-  // TODO: Work on something to dynamically allocate location better.
-  address_space = var.location == each.value ? ["10.1.0.0/24"] : ["10.2.0.0/24"]
+  address_space = [local.client_vnets[each.value].address_space]
 }
 
 resource "azurerm_subnet" "main_client" {
-  for_each = local.client_locations
+  for_each = toset(local.client_locations)
 
   name                = "default"
   resource_group_name = azurerm_virtual_network.main_client[each.value].resource_group_name
@@ -50,14 +58,14 @@ resource "azurerm_subnet" "main_client" {
 }
 
 resource "azurerm_subnet_network_security_group_association" "main_client" {
-  for_each = local.client_locations
+  for_each = toset(local.client_locations)
 
   subnet_id                 = azurerm_subnet.main_client[each.value].id
   network_security_group_id = azurerm_network_security_group.main_client[each.value].id
 }
 
 resource "azurerm_virtual_network_peering" "main_client_to_server" {
-  for_each = local.client_locations
+  for_each = toset(local.client_locations)
 
   name                      = "${replace(each.value, " ", "")}-client-to-server"
   resource_group_name       = azurerm_resource_group.main.name
@@ -68,7 +76,7 @@ resource "azurerm_virtual_network_peering" "main_client_to_server" {
 }
 
 resource "azurerm_virtual_network_peering" "main_client_from_server" {
-  for_each = local.client_locations
+  for_each = toset(local.client_locations)
 
   name                      = "${replace(each.value, " ", "")}-server-to-client"
   resource_group_name       = azurerm_resource_group.main.name

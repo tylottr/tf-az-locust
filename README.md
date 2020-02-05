@@ -33,10 +33,8 @@ These are the variables used along with their defaults. For any without a value 
 |vm_username|Username for the VMs|vmadmin|
 |vm_size|VM Size for the VMs|Standard_B1s|
 |vm_count|Number of client VMs to deploy per-region|1|
-|additional_locations|Additional locations to deploy to|null|
+|additional_locations|List of additional locations to deploy to|null|
 |locustfile|The location of a Locustfile used for load testing|files/locust/Locustfile.py|
-
-> At current only one additional location is supported. Please see line 34 in client.tf for the exact reason.
 
 Outputs
 -------
