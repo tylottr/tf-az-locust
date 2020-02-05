@@ -8,6 +8,7 @@ users:
   ssh_authorized_keys:
   - ${ssh_public_key}
 - name: locust
+  homedir: /opt/locust
   shell: /bin/false
   system: true
 
@@ -37,7 +38,7 @@ write_files:
     NoNewPrivileges=yes
     KillMode=process
     KillSignal=SIGINT
-    Restart=on-failure
+    Restart=always
     RestartSec=5
     TimeoutStopSec=30
     StartLimitInterval=60
