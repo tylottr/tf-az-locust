@@ -79,6 +79,12 @@ variable "additional_location" {
   default     = "West Europe"
 }
 
+variable "locustfile" {
+  description = "The location of a Locustfile used for load testing"
+  type        = string
+  default     = "files/locust/Locustfile.py"
+}
+
 # Locals
 locals {
   tags = merge(

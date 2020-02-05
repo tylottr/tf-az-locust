@@ -36,6 +36,7 @@ These are the variables used along with their defaults. For any without a value 
 |vm_disk_size|VM disk size for the VMs in GB (Minimum 30)|32|
 |vm_count|Number of client VMs to deploy per-region|1|
 |additional_location|An additional location to deploy to|West Europe|
+|locustfile|The location of a Locustfile used for load testing|files/locust/Locustfile.py|
 
 > additional_location should be changed to set(string) and be given an empty set in future when more locations are supported.
 

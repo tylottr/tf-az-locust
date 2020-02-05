@@ -177,7 +177,7 @@ resource "azurerm_virtual_machine" "main_server" {
         admin_user     = var.vm_username
         ssh_public_key = tls_private_key.main_ssh.public_key_openssh
 
-        locustfile = file("${path.module}/files/locust/Locustfile.py")
+        locustfile = file(var.locustfile)
 
         storage_account_name   = azurerm_storage_account.main.name
         storage_share_endpoint = azurerm_storage_account.main.primary_file_host
