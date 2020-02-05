@@ -32,8 +32,6 @@ These are the variables used along with their defaults. For any without a value 
 |tags|Tags given to the resources created by this template|{}|
 |vm_username|Username for the VMs|vmadmin|
 |vm_size|VM Size for the VMs|Standard_B1s|
-|vm_disk_type|VM disk type for the VMs|StandardSSD_LRS|
-|vm_disk_size|VM disk size for the VMs in GB (Minimum 30)|32|
 |vm_count|Number of client VMs to deploy per-region|1|
 |additional_locations|Additional locations to deploy to|null|
 |locustfile|The location of a Locustfile used for load testing|files/locust/Locustfile.py|

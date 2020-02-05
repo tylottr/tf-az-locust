@@ -55,18 +55,6 @@ variable "vm_size" {
   default     = "Standard_B1s"
 }
 
-variable "vm_disk_type" {
-  description = "VM disk type for the VMs"
-  type        = string
-  default     = "StandardSSD_LRS"
-}
-
-variable "vm_disk_size" {
-  description = "VM disk size for the VMs in GB (Minimum 30)"
-  type        = number
-  default     = 32
-}
-
 variable "vm_count" {
   description = "Number of client VMs to deploy per-region"
   type        = number
@@ -107,4 +95,8 @@ locals {
     offer     = local.vm_os_platforms.ubuntu.offer
     sku       = local.vm_os_platforms.ubuntu.sku
   }
+
+  // VM Parameters
+  vm_disk_type = "StandardSSD_LRS"
+  vm_disk_size = 32
 }
