@@ -1,13 +1,17 @@
 # Data
 data "azurerm_client_config" "current" {}
 
-data "http" "my_ip" {
-  url = "https://api.ipify.org"
-}
-
 resource "random_integer" "entropy" {
   min = 0
   max = 99
+}
+
+locals {
+  resource_prefix = var.resource_prefix
+}
+
+data "http" "my_ip" {
+  url = "https://api.ipify.org"
 }
 
 resource "tls_private_key" "main_ssh" {
