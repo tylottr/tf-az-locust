@@ -43,7 +43,6 @@ This template will output the following information:
 
 |Output|Description|
 |-|-|
-|client_vm_public_ips|The public IPs of Locust agent VMs|
 |server_vm_fqdn|The FQDN of the Locust server|
 
 Deployment
