@@ -44,6 +44,7 @@ This template will output the following information:
 |Output|Description|
 |-|-|
 |server_vm_fqdn|The FQDN of the Locust server|
+|server_vm_web_access|Example command to access the WebUI|
 
 Deployment
 ----------
