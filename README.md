@@ -1,10 +1,18 @@
-Terraform: VM Lab Environment
-====================================
+Terraform: Locust Load Test
+===========================
 
-This template will create a hub-spoke environment for lab purposes.
+This template will create a multi-region compatible load testing setup using Locust. By default it will use a Locustfile under `files/Locustfile.py`, but you can either edit this file or change the `locustfile` variable to point to a new file.
+
+> To ensure that the deployment and load test will be successful, it may be worth running Locust locally against the Locustfile you want to save time in the case that there might be a syntax error.
 
 The environment deployed contains the following resources:
-* TODO: Populate
+* A Resource Group
+* A storage account
+    * A file share for storing Locust test results
+* A VNet for the Locust Server with an NSG allowing traffic from the current public IP of the user deploying the template to ports 22 and 8089
+* A Locust Server VM with a mount to the created file share and Locust set up as a SystemD Unit
+* A VNet for the Locust Clients per location used for the load test peered to the Locust Server VNet with NSGs allowing only VNet-to-VNet traffic
+* n Locust Client VMs in each location used for the load test
 
 Prerequisites
 -------------
@@ -53,7 +61,7 @@ Below describes the steps to deploy this template.
 
 1. Set variables for the deployment
     * Terraform has a number of ways to set variables. See [here](https://www.terraform.io/docs/configuration/variables.html#assigning-values-to-root-module-variables)
-2. Log into Azure with `az login` and set your subscription with `az account set --subscription <replace with subscription id>`
+2. Log into Azure with `az login` and set your subscription with `az account set --subscription <replace with subscription id or name>`
     * Terraform has a number of ways to authenticate. See [here](https://www.terraform.io/docs/providers/azurerm/guides/azure_cli.html)
 3. Initialise Terraform with `terraform init`
     * By default, state is stored locally. State can be stored in different backends. See [here](https://www.terraform.io/docs/backends/types/index.html) for more information.
