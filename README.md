@@ -1,5 +1,4 @@
-Terraform: Locust Load Test
-===========================
+# Terraform: Locust Load Test
 
 This template will create a multi-region compatible load testing setup using Locust. By default it will use a Locustfile under `files/Locustfile.py`, but you can either edit this file or change the `locustfile` variable to point to a new file.
 
@@ -14,8 +13,7 @@ The environment deployed contains the following resources:
 * A VNet for the Locust Clients per location used for the load test peered to the Locust Server VNet with NSGs allowing only VNet-to-VNet traffic
 * n Locust Client VMs in each location used for the load test
 
-Prerequisites
--------------
+## Prerequisites
 
 Prior to deployment you need the following:
 * [azcli](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest)
@@ -24,8 +22,7 @@ Prior to deployment you need the following:
 In Azure, you also need:
 * A user account or service policy with Contributor level access to the target subscription
 
-Variables
----------
+## Variables
 
 These are the variables used along with their defaults. For any without a value in default, the value must be filled in unless otherwise sateted otherwise the deployment will encounter failures.
 
@@ -44,8 +41,7 @@ These are the variables used along with their defaults. For any without a value 
 |additional_locations|List of additional locations to deploy to|null|
 |locustfile|The location of a Locustfile used for load testing|files/Locustfile.py|
 
-Outputs
--------
+## Outputs
 
 This template will output the following information:
 
@@ -54,8 +50,7 @@ This template will output the following information:
 |server_vm_info|Information for the Locust Server|
 |server_vm_web_access|Information to log into the Locust Server|
 
-Deployment
-----------
+## Deployment
 
 Below describes the steps to deploy this template.
 
