@@ -43,12 +43,6 @@ variable "tags" {
 
 # Resource-specific
 ## Compute
-variable "vm_username" {
-  description = "Username for the VMs"
-  type        = string
-  default     = "vmadmin"
-}
-
 variable "vm_size" {
   description = "VM Size for the VMs"
   type        = string
@@ -75,12 +69,16 @@ variable "locustfile" {
 
 # Locals
 locals {
+  resource_prefix = var.resource_prefix
+  
   tags = merge(
     var.tags,
     {
       deployedBy = "Terraform"
     }
   )
+
+  vm_admin_username = "vmadmin"
 
   vm_os_platforms = {
     ubuntu = {

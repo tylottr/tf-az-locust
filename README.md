@@ -9,9 +9,9 @@ The environment deployed contains the following resources:
 * A storage account
     * A file share for storing Locust test results
 * A VNet for the Locust Server with an NSG allowing traffic from the current public IP of the user deploying the template to ports 22 and 8089
-* A Locust Server VM with a mount to the created file share and Locust set up as a SystemD Unit
+* A Locust Server VM with an admin called "vmadmin" and a mount to the created file share and Locust set up as a SystemD Unit
 * A VNet for the Locust Clients per location used for the load test peered to the Locust Server VNet with NSGs allowing only VNet-to-VNet traffic
-* n Locust Client VMs in each location used for the load test
+* n Locust Client VMs with an admin called "vmadmin" in each location used for the load test
 
 ## Prerequisites
 
@@ -35,7 +35,6 @@ These are the variables used along with their defaults. For any without a value 
 |location|The primary location of this deployment|UK South|
 |resource_prefix|A prefix for the name of the resource, used to generate the resource names|locust|
 |tags|Tags given to the resources created by this template|{}|
-|vm_username|Username for the VMs|vmadmin|
 |vm_size|VM Size for the VMs|Standard_B1s|
 |vm_count|Number of client VMs to deploy per-region|1|
 |additional_locations|List of additional locations to deploy to|null|

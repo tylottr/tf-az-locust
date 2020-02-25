@@ -1,15 +1,6 @@
 # Data
 data "azurerm_client_config" "current" {}
 
-resource "random_integer" "entropy" {
-  min = 0
-  max = 99
-}
-
-locals {
-  resource_prefix = var.resource_prefix
-}
-
 data "http" "my_ip" {
   url = "https://api.ipify.org"
 }
@@ -19,12 +10,12 @@ resource "tls_private_key" "main_ssh" {
 }
 
 resource "local_file" "main_ssh_public" {
-  filename          = ".terraform/.ssh/id_rsa.pub"
+  filename          = ".terraform/.ssh/${local.resource_prefix}-vm.id_rsa.pub"
   sensitive_content = tls_private_key.main_ssh.public_key_openssh
 }
 
 resource "local_file" "main_ssh_private" {
-  filename          = ".terraform/.ssh/id_rsa"
+  filename          = ".terraform/.ssh/${local.resource_prefix}-vm.id_rsa"
   sensitive_content = tls_private_key.main_ssh.private_key_pem
   file_permission   = "0600"
 }
@@ -40,7 +31,7 @@ resource "azurerm_resource_group" "main" {
 // Server
 ## Storage
 resource "azurerm_storage_account" "main" {
-  name                = lower(replace("${local.resource_prefix}${random_integer.entropy.result}sa", "/[-_]/", ""))
+  name                = lower(replace("${local.resource_prefix}sa", "/[-_]/", ""))
   resource_group_name = azurerm_resource_group.main.name
   location            = azurerm_resource_group.main.location
   tags                = merge(local.tags, { locustRole = "Storage" })
@@ -65,7 +56,7 @@ resource "azurerm_role_assignment" "main" {
 
   scope                = azurerm_storage_account.main.id
   role_definition_name = each.value
-  principal_id         = azurerm_virtual_machine.main_server.identity[0].principal_id
+  principal_id         = azurerm_linux_virtual_machine.main_server.identity[0].principal_id
 }
 
 ## Network
@@ -149,58 +140,47 @@ resource "azurerm_network_interface" "main_server" {
   }
 }
 
-resource "azurerm_virtual_machine" "main_server" {
+resource "azurerm_linux_virtual_machine" "main_server" {
   name                = "${local.resource_prefix}-server-vm"
   resource_group_name = azurerm_virtual_network.main_server.resource_group_name
   location            = azurerm_virtual_network.main_server.location
   tags                = merge(local.tags, { locustRole = "Server" })
 
-  vm_size                          = var.vm_size
-  network_interface_ids            = [azurerm_network_interface.main_server.id]
-  delete_os_disk_on_termination    = true
-  delete_data_disks_on_termination = true
+  size                  = var.vm_size
+  network_interface_ids = [azurerm_network_interface.main_server.id]
 
-  os_profile {
-    computer_name  = "${local.resource_prefix}-server-vm"
-    admin_username = var.vm_username
-    custom_data = templatefile(
-      "${path.module}/templates/cloud-init/locust-server.tpl.yml",
-      {
-        admin_user     = var.vm_username
-        ssh_public_key = tls_private_key.main_ssh.public_key_openssh
-
-        locustfile = file(var.locustfile)
-
-        storage_account_name   = azurerm_storage_account.main.name
-        storage_share_endpoint = azurerm_storage_account.main.primary_file_host
-        storage_share_key      = azurerm_storage_account.main.primary_access_key
-        storage_share_name     = azurerm_storage_share.main.name
-      }
-    )
+  admin_username = local.vm_admin_username
+  admin_ssh_key {
+    username   = local.vm_admin_username
+    public_key = tls_private_key.main_ssh.public_key_openssh
   }
 
-  storage_image_reference {
+  custom_data = base64encode(templatefile(
+    "${path.module}/templates/cloud-init/locust-server.tpl.yml",
+    {
+      admin_user     = local.vm_admin_username
+      ssh_public_key = tls_private_key.main_ssh.public_key_openssh
+
+      locustfile = file(var.locustfile)
+
+      storage_account_name   = azurerm_storage_account.main.name
+      storage_share_endpoint = azurerm_storage_account.main.primary_file_host
+      storage_share_key      = azurerm_storage_account.main.primary_access_key
+      storage_share_name     = azurerm_storage_share.main.name
+    }
+  ))
+
+  os_disk {
+    caching              = "None"
+    disk_size_gb         = local.vm_disk_size
+    storage_account_type = local.vm_disk_type
+  }
+
+  source_image_reference {
     publisher = local.vm_os.publisher
     offer     = local.vm_os.offer
     sku       = local.vm_os.sku
     version   = "latest"
-  }
-
-  storage_os_disk {
-    name              = "${local.resource_prefix}-server-osdisk"
-    caching           = "ReadWrite"
-    create_option     = "FromImage"
-    disk_size_gb      = local.vm_disk_size
-    managed_disk_type = local.vm_disk_type
-  }
-
-  os_profile_linux_config {
-    disable_password_authentication = true
-
-    ssh_keys {
-      path     = "/home/${var.vm_username}/.ssh/authorized_keys"
-      key_data = tls_private_key.main_ssh.public_key_openssh
-    }
   }
 
   identity {
@@ -215,9 +195,9 @@ locals {
 
   // Generate name => { name, address_space } map of VNets
   client_vnets = {
-    for l in range(length(local.client_locations)):
+    for l in range(length(local.client_locations)) :
     local.client_locations[l] => {
-      name = format("%s-%s-client-vnet", local.resource_prefix, replace(local.client_locations[l], " ", ""))
+      name          = format("%s-%s-client-vnet", local.resource_prefix, replace(local.client_locations[l], " ", ""))
       address_space = format("10.%g.0.0/24", l + 1)
     }
   }
@@ -226,7 +206,7 @@ locals {
   client_vms = {
     for s in setproduct(local.client_locations, range(var.vm_count)) :
     format("%s-%s-client-vm%g", local.resource_prefix, replace(s[0], " ", ""), s[1] + 1) => {
-      vnet = format("%s-%s-client-vnet", local.resource_prefix, replace(s[0], " ", ""))
+      vnet     = format("%s-%s-client-vnet", local.resource_prefix, replace(s[0], " ", ""))
       location = s[0]
     }
   }
@@ -321,7 +301,7 @@ resource "azurerm_network_interface" "main_client" {
   }
 }
 
-resource "azurerm_virtual_machine" "main_client" {
+resource "azurerm_linux_virtual_machine" "main_client" {
   for_each = local.client_vms
 
   name                = each.key
@@ -329,48 +309,37 @@ resource "azurerm_virtual_machine" "main_client" {
   location            = azurerm_virtual_network.main_client[each.value.location].location
   tags                = merge(local.tags, { locustRole = "Client" })
 
-  vm_size                          = var.vm_size
-  network_interface_ids            = [azurerm_network_interface.main_client[each.key].id]
-  delete_os_disk_on_termination    = true
-  delete_data_disks_on_termination = true
+  size                  = var.vm_size
+  network_interface_ids = [azurerm_network_interface.main_client[each.key].id]
 
-  os_profile {
-    computer_name  = each.key
-    admin_username = var.vm_username
-    custom_data = templatefile(
-      "${path.module}/templates/cloud-init/locust-client.tpl.yml",
-      {
-        admin_user     = var.vm_username
-        ssh_public_key = tls_private_key.main_ssh.public_key_openssh
-
-        locustfile = file(var.locustfile)
-
-        server_address = azurerm_network_interface.main_server.private_ip_address
-      }
-    )
+  admin_username = local.vm_admin_username
+  admin_ssh_key {
+    username   = local.vm_admin_username
+    public_key = tls_private_key.main_ssh.public_key_openssh
   }
 
-  storage_image_reference {
+  custom_data = base64encode(templatefile(
+    "${path.module}/templates/cloud-init/locust-client.tpl.yml",
+    {
+      admin_user     = local.vm_admin_username
+      ssh_public_key = tls_private_key.main_ssh.public_key_openssh
+
+      locustfile = file(var.locustfile)
+
+      server_address = azurerm_network_interface.main_server.private_ip_address
+    }
+  ))
+
+  os_disk {
+    caching              = "None"
+    disk_size_gb         = local.vm_disk_size
+    storage_account_type = local.vm_disk_type
+  }
+
+  source_image_reference {
     publisher = local.vm_os.publisher
     offer     = local.vm_os.offer
     sku       = local.vm_os.sku
     version   = "latest"
-  }
-
-  storage_os_disk {
-    name              = "${each.key}-osdisk"
-    caching           = "ReadWrite"
-    create_option     = "FromImage"
-    disk_size_gb      = local.vm_disk_size
-    managed_disk_type = local.vm_disk_type
-  }
-
-  os_profile_linux_config {
-    disable_password_authentication = true
-
-    ssh_keys {
-      path     = "/home/${var.vm_username}/.ssh/authorized_keys"
-      key_data = tls_private_key.main_ssh.public_key_openssh
-    }
   }
 }
