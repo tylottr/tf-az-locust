@@ -117,10 +117,6 @@ resource "azurerm_subnet" "main_server" {
 
   virtual_network_name = azurerm_virtual_network.main_server.name
   address_prefix       = azurerm_virtual_network.main_server.address_space[0]
-
-  lifecycle {
-    ignore_changes = [network_security_group_id]
-  }
 }
 
 resource "azurerm_subnet_network_security_group_association" "main_server" {
@@ -265,10 +261,6 @@ resource "azurerm_subnet" "main_client" {
 
   virtual_network_name = azurerm_virtual_network.main_client[each.value].name
   address_prefix       = azurerm_virtual_network.main_client[each.value].address_space[0]
-
-  lifecycle {
-    ignore_changes = [network_security_group_id]
-  }
 }
 
 resource "azurerm_subnet_network_security_group_association" "main_client" {
