@@ -1,4 +1,6 @@
-# Global
+###################
+# Global Variables
+###################
 variable "tenant_id" {
   description = "The tenant id of this deployment"
   type        = string
@@ -24,9 +26,15 @@ variable "client_secret" {
 }
 
 variable "location" {
-  description = "The primary location of this deployment"
+  description = "The location of this deployment"
   type        = string
   default     = "UK South"
+}
+
+variable "resource_group_name" {
+  description = "The name of an existing resource group - this will override the creation of a new resource group"
+  type        = string
+  default     = ""
 }
 
 variable "resource_prefix" {
@@ -41,7 +49,9 @@ variable "tags" {
   default     = {}
 }
 
-# Resource-specific
+##############################
+# Resource-Specific Variables
+##############################
 ## Compute
 variable "vm_size" {
   description = "VM Size for the VMs"
@@ -67,10 +77,12 @@ variable "locustfile" {
   default     = "files/Locustfile.py"
 }
 
+#########
 # Locals
+#########
 locals {
   resource_prefix = var.resource_prefix
-  
+
   tags = merge(
     var.tags,
     {

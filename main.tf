@@ -1,15 +1,8 @@
-# Data
-data "http" "my_ip" {
-  url = "https://api.ipify.org"
-}
-
+##########
+# SSH Key
+##########
 resource "tls_private_key" "main_ssh" {
   algorithm = "RSA"
-}
-
-resource "local_file" "main_ssh_public" {
-  filename          = ".terraform/.ssh/${local.resource_prefix}-vm.id_rsa.pub"
-  sensitive_content = tls_private_key.main_ssh.public_key_openssh
 }
 
 resource "local_file" "main_ssh_private" {
@@ -18,20 +11,28 @@ resource "local_file" "main_ssh_private" {
   file_permission   = "0600"
 }
 
-# Resources
-## Resource Group
+#################
+# Resource Group
+#################
 resource "azurerm_resource_group" "main" {
+  count = var.resource_group_name == "" ? 1 : 0
+
   name     = "${local.resource_prefix}-rg"
   location = var.location
   tags     = local.tags
 }
 
-// Server
-## Storage
+data "azurerm_resource_group" "main" {
+  name = var.resource_group_name == "" ? azurerm_resource_group.main[0].name : var.resource_group_name
+}
+
+###################
+# Server - Storage
+###################
 resource "azurerm_storage_account" "main" {
   name                = lower(replace("${local.resource_prefix}sa", "/[-_]/", ""))
-  resource_group_name = azurerm_resource_group.main.name
-  location            = azurerm_resource_group.main.location
+  resource_group_name = data.azurerm_resource_group.main.name
+  location            = var.location
   tags                = merge(local.tags, { locustRole = "Storage" })
 
   account_kind             = "StorageV2"
@@ -57,7 +58,9 @@ resource "azurerm_role_assignment" "main" {
   principal_id         = azurerm_linux_virtual_machine.main_server.identity[0].principal_id
 }
 
-## Network
+######################
+# Server - Networking
+######################
 resource "azurerm_network_security_group" "main_server" {
   name                = "${local.resource_prefix}-server-nsg"
   resource_group_name = azurerm_virtual_network.main_server.resource_group_name
@@ -93,8 +96,8 @@ resource "azurerm_network_security_group" "main_server" {
 
 resource "azurerm_virtual_network" "main_server" {
   name                = "${local.resource_prefix}-server-vnet"
-  resource_group_name = azurerm_resource_group.main.name
-  location            = azurerm_resource_group.main.location
+  resource_group_name = data.azurerm_resource_group.main.name
+  location            = var.location
   tags                = merge(local.tags, { locustRole = "Server" })
 
   address_space = ["10.0.0.0/24"]
@@ -105,7 +108,7 @@ resource "azurerm_subnet" "main_server" {
   resource_group_name = azurerm_virtual_network.main_server.resource_group_name
 
   virtual_network_name = azurerm_virtual_network.main_server.name
-  address_prefix       = azurerm_virtual_network.main_server.address_space[0]
+  address_prefixes     = [azurerm_virtual_network.main_server.address_space[0]]
 }
 
 resource "azurerm_subnet_network_security_group_association" "main_server" {
@@ -113,7 +116,9 @@ resource "azurerm_subnet_network_security_group_association" "main_server" {
   network_security_group_id = azurerm_network_security_group.main_server.id
 }
 
-## Compute
+###################
+# Server - Compute
+###################
 resource "azurerm_public_ip" "main_server" {
   name                = "${local.resource_prefix}-server-pip"
   resource_group_name = azurerm_virtual_network.main_server.resource_group_name
@@ -186,7 +191,9 @@ resource "azurerm_linux_virtual_machine" "main_server" {
   }
 }
 
-// Clients
+##########################
+# Clients - Configuration
+##########################
 locals {
   // Merge location and additional_locations
   client_locations = var.additional_locations != null ? concat([var.location], var.additional_locations) : [var.location]
@@ -210,7 +217,10 @@ locals {
   }
 }
 
-## Network
+
+#######################
+# Clients - Networking
+#######################
 resource "azurerm_network_security_group" "main_client" {
   for_each = toset(local.client_locations)
 
@@ -224,7 +234,7 @@ resource "azurerm_virtual_network" "main_client" {
   for_each = toset(local.client_locations)
 
   name                = local.client_vnets[each.value].name
-  resource_group_name = azurerm_resource_group.main.name
+  resource_group_name = data.azurerm_resource_group.main.name
   location            = each.value
   tags                = merge(local.tags, { locustRole = "Client" })
 
@@ -238,7 +248,7 @@ resource "azurerm_subnet" "main_client" {
   resource_group_name = azurerm_virtual_network.main_client[each.value].resource_group_name
 
   virtual_network_name = azurerm_virtual_network.main_client[each.value].name
-  address_prefix       = azurerm_virtual_network.main_client[each.value].address_space[0]
+  address_prefixes     = [azurerm_virtual_network.main_client[each.value].address_space[0]]
 }
 
 resource "azurerm_subnet_network_security_group_association" "main_client" {
@@ -252,7 +262,7 @@ resource "azurerm_virtual_network_peering" "main_client_to_server" {
   for_each = toset(local.client_locations)
 
   name                      = "${replace(each.value, " ", "")}-client-to-server"
-  resource_group_name       = azurerm_resource_group.main.name
+  resource_group_name       = data.azurerm_resource_group.main.name
   virtual_network_name      = azurerm_virtual_network.main_client[each.value].name
   remote_virtual_network_id = azurerm_virtual_network.main_server.id
 
@@ -263,14 +273,16 @@ resource "azurerm_virtual_network_peering" "main_client_from_server" {
   for_each = toset(local.client_locations)
 
   name                      = "${replace(each.value, " ", "")}-server-to-client"
-  resource_group_name       = azurerm_resource_group.main.name
+  resource_group_name       = data.azurerm_resource_group.main.name
   virtual_network_name      = azurerm_virtual_network.main_server.name
   remote_virtual_network_id = azurerm_virtual_network.main_client[each.value].id
 
   allow_virtual_network_access = true
 }
 
-## Compute
+####################
+# Clients - Compute
+####################
 resource "azurerm_public_ip" "main_client" {
   for_each = local.client_vms
 
