@@ -83,13 +83,6 @@ variable "locustfile" {
 locals {
   resource_prefix = var.resource_prefix
 
-  tags = merge(
-    var.tags,
-    {
-      deployedBy = "Terraform"
-    }
-  )
-
   vm_admin_username = "vmadmin"
 
   vm_os_platforms = {

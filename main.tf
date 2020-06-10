@@ -19,7 +19,7 @@ resource "azurerm_resource_group" "main" {
 
   name     = "${local.resource_prefix}-rg"
   location = var.location
-  tags     = local.tags
+  tags     = var.tags
 }
 
 data "azurerm_resource_group" "main" {
@@ -33,7 +33,7 @@ resource "azurerm_storage_account" "main" {
   name                = lower(replace("${local.resource_prefix}sa", "/[-_]/", ""))
   resource_group_name = data.azurerm_resource_group.main.name
   location            = var.location
-  tags                = merge(local.tags, { locustRole = "Storage" })
+  tags                = merge(var.tags, { locustRole = "Storage" })
 
   account_kind             = "StorageV2"
   account_tier             = "Standard"
@@ -65,7 +65,7 @@ resource "azurerm_network_security_group" "main_server" {
   name                = "${local.resource_prefix}-server-nsg"
   resource_group_name = azurerm_virtual_network.main_server.resource_group_name
   location            = azurerm_virtual_network.main_server.location
-  tags                = merge(local.tags, { locustRole = "Server" })
+  tags                = merge(var.tags, { locustRole = "Server" })
 
   security_rule {
     name                       = "ssh-allow"
@@ -98,7 +98,7 @@ resource "azurerm_virtual_network" "main_server" {
   name                = "${local.resource_prefix}-server-vnet"
   resource_group_name = data.azurerm_resource_group.main.name
   location            = var.location
-  tags                = merge(local.tags, { locustRole = "Server" })
+  tags                = merge(var.tags, { locustRole = "Server" })
 
   address_space = ["10.0.0.0/24"]
 }
@@ -123,7 +123,7 @@ resource "azurerm_public_ip" "main_server" {
   name                = "${local.resource_prefix}-server-pip"
   resource_group_name = azurerm_virtual_network.main_server.resource_group_name
   location            = azurerm_virtual_network.main_server.location
-  tags                = merge(local.tags, { locustRole = "Server" })
+  tags                = merge(var.tags, { locustRole = "Server" })
 
   allocation_method = "Dynamic"
   domain_name_label = lower("${local.resource_prefix}-server")
@@ -133,7 +133,7 @@ resource "azurerm_network_interface" "main_server" {
   name                = "${local.resource_prefix}-server-nic"
   resource_group_name = azurerm_virtual_network.main_server.resource_group_name
   location            = azurerm_virtual_network.main_server.location
-  tags                = merge(local.tags, { locustRole = "Server" })
+  tags                = merge(var.tags, { locustRole = "Server" })
 
   ip_configuration {
     name                          = "ipconfig"
@@ -147,7 +147,7 @@ resource "azurerm_linux_virtual_machine" "main_server" {
   name                = "${local.resource_prefix}-server-vm"
   resource_group_name = azurerm_virtual_network.main_server.resource_group_name
   location            = azurerm_virtual_network.main_server.location
-  tags                = merge(local.tags, { locustRole = "Server" })
+  tags                = merge(var.tags, { locustRole = "Server" })
 
   size                  = var.vm_size
   network_interface_ids = [azurerm_network_interface.main_server.id]
@@ -227,7 +227,7 @@ resource "azurerm_network_security_group" "main_client" {
   name                = "${local.resource_prefix}-${replace(each.value, " ", "")}-client-nsg"
   resource_group_name = azurerm_virtual_network.main_client[each.value].resource_group_name
   location            = azurerm_virtual_network.main_client[each.value].location
-  tags                = merge(local.tags, { locustRole = "Client" })
+  tags                = merge(var.tags, { locustRole = "Client" })
 }
 
 resource "azurerm_virtual_network" "main_client" {
@@ -236,7 +236,7 @@ resource "azurerm_virtual_network" "main_client" {
   name                = local.client_vnets[each.value].name
   resource_group_name = data.azurerm_resource_group.main.name
   location            = each.value
-  tags                = merge(local.tags, { locustRole = "Client" })
+  tags                = merge(var.tags, { locustRole = "Client" })
 
   address_space = [local.client_vnets[each.value].address_space]
 }
@@ -289,7 +289,7 @@ resource "azurerm_public_ip" "main_client" {
   name                = "${each.key}-pip"
   resource_group_name = azurerm_virtual_network.main_client[each.value.location].resource_group_name
   location            = azurerm_virtual_network.main_client[each.value.location].location
-  tags                = merge(local.tags, { locustRole = "Client" })
+  tags                = merge(var.tags, { locustRole = "Client" })
 
   allocation_method = "Dynamic"
   domain_name_label = lower(each.key)
@@ -301,7 +301,7 @@ resource "azurerm_network_interface" "main_client" {
   name                = "${each.key}-nic"
   resource_group_name = azurerm_virtual_network.main_client[each.value.location].resource_group_name
   location            = azurerm_virtual_network.main_client[each.value.location].location
-  tags                = merge(local.tags, { locustRole = "Client" })
+  tags                = merge(var.tags, { locustRole = "Client" })
 
   ip_configuration {
     name                          = "ipconfig"
@@ -317,7 +317,7 @@ resource "azurerm_linux_virtual_machine" "main_client" {
   name                = each.key
   resource_group_name = azurerm_virtual_network.main_client[each.value.location].resource_group_name
   location            = azurerm_virtual_network.main_client[each.value.location].location
-  tags                = merge(local.tags, { locustRole = "Client" })
+  tags                = merge(var.tags, { locustRole = "Client" })
 
   size                  = var.vm_size
   network_interface_ids = [azurerm_network_interface.main_client[each.key].id]
