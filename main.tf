@@ -38,6 +38,12 @@ resource "azurerm_storage_account" "main" {
   account_kind             = "StorageV2"
   account_tier             = "Standard"
   account_replication_type = "LRS"
+
+  network_rules {
+    default_action             = "Deny"
+    ip_rules                   = [data.http.my_ip.body]
+    virtual_network_subnet_ids = [azurerm_subnet.main_server.id]
+  }
 }
 
 resource "azurerm_storage_share" "main" {
@@ -109,6 +115,8 @@ resource "azurerm_subnet" "main_server" {
 
   virtual_network_name = azurerm_virtual_network.main_server.name
   address_prefixes     = [azurerm_virtual_network.main_server.address_space[0]]
+
+  service_endpoints = ["Microsoft.Storage"]
 }
 
 resource "azurerm_subnet_network_security_group_association" "main_server" {
@@ -165,6 +173,8 @@ resource "azurerm_linux_virtual_machine" "main_server" {
 
       locustfile = file(var.locustfile)
 
+      server_address = azurerm_network_interface.main_server.private_ip_address
+
       storage_account_name   = azurerm_storage_account.main.name
       storage_share_endpoint = azurerm_storage_account.main.primary_file_host
       storage_share_key      = azurerm_storage_account.main.primary_access_key
@@ -215,7 +225,6 @@ locals {
     }
   }
 }
-
 
 #######################
 # Clients - Networking

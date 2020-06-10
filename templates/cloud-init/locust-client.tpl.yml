@@ -33,7 +33,7 @@ write_files:
     [Service]
     User=locust
     Group=locust
-    ExecStart=/usr/local/bin/locust -f /opt/locust/Locustfile.py --slave --master-host=${server_address}
+    ExecStart=/usr/local/bin/locust -f /opt/locust/Locustfile.py --worker --master-host=${server_address}
     ExecReload=/bin/kill --signal HUP $MAINPID
     NoNewPrivileges=yes
     KillMode=process
@@ -50,7 +50,7 @@ write_files:
 
 runcmd:
 # Install Locust
-- pip3 install locust
+- pip3 install locust==1.0.3
 # Enable the service
 - systemctl start locust-client; systemctl enable locust-client
 
