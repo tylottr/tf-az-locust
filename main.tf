@@ -126,7 +126,6 @@ resource "azurerm_public_ip" "main_server" {
   tags                = merge(var.tags, { locustRole = "Server" })
 
   allocation_method = "Dynamic"
-  domain_name_label = lower("${local.resource_prefix}-server")
 }
 
 resource "azurerm_network_interface" "main_server" {

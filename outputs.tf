@@ -6,9 +6,9 @@ output "resource_group_name" {
   value       = data.azurerm_resource_group.main.name
 }
 
-output "server_vm_fqdn" {
-  description = "FQDN of the server VM"
-  value       = azurerm_public_ip.main_server.fqdn
+output "server_vm_ip" {
+  description = "IP of the server VM"
+  value       = azurerm_public_ip.main_server.ip_address
 }
 
 output "admin_username" {
@@ -27,11 +27,11 @@ output "server_vm_web_access" {
   value       = <<EOF
 To access the server follow the below steps for an encrypted connection:
 1. Run the below command
-  ssh vmadmin@${azurerm_public_ip.main_server.fqdn} -i ${local_file.main_ssh_private.filename} -L 8080:localhost:8089
+  ssh vmadmin@${azurerm_public_ip.main_server.ip_address} -i ${local_file.main_ssh_private.filename} -L 8080:localhost:8089
 2. Open your browser to http://localhost:8080
 
 OR
 
-1. Visit the following link (This will not be encrypted): http://${azurerm_public_ip.main_server.fqdn}:8089
+1. Visit the following link (This will not be encrypted): http://${azurerm_public_ip.main_server.ip_address}:8089
 EOF
 }
