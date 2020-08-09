@@ -18,7 +18,7 @@ locals {
   // Generate name => { vnet, location } map of VMs
   worker_vms = {
     for s in setproduct(local.worker_locations, range(var.vm_count)) :
-    format("%s-%s-worker-vm%g", local.resource_prefix, replace(s[0], " ", ""), s[1] + 1) => {
+    format("%s-%s-worker-vm%02d", local.resource_prefix, replace(s[0], " ", ""), s[1] + 1) => {
       vnet     = format("%s-%s-worker-vnet", local.resource_prefix, replace(s[0], " ", ""))
       location = s[0]
     }
