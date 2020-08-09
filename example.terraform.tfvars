@@ -6,3 +6,5 @@ tags = {
   Purpose     = "Locust Example"
   Environment = "Proof of Concept"
 }
+
+additional_locations = ["East US"]

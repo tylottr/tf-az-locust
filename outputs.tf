@@ -1,9 +1,10 @@
 ####################
 # Locust VM Details
 ####################
+
 output "resource_group_name" {
   description = "Resource group of the VMs"
-  value       = data.azurerm_resource_group.main.name
+  value       = azurerm_resource_group.main.name
 }
 
 output "server_vm_ip" {
@@ -27,7 +28,7 @@ output "server_vm_web_access" {
   value       = <<EOF
 To access the server follow the below steps for an encrypted connection:
 1. Run the below command
-  ssh vmadmin@${azurerm_public_ip.main_server.ip_address} -i ${local_file.main_ssh_private.filename} -L 8080:localhost:8089
+  ssh ${local.vm_admin_username}@${azurerm_public_ip.main_server.ip_address} -i ${local_file.main_ssh_private.filename} -L 8080:localhost:8089
 2. Open your browser to http://localhost:8080
 
 OR

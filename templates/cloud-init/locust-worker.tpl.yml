@@ -20,10 +20,10 @@ write_files:
 - path: /opt/locust/Locustfile.py
   content: |
     ${replace(locustfile, "\n", "\n    ")}
-- path: /etc/systemd/system/locust-client.service
+- path: /etc/systemd/system/locust-Worker.service
   content: |
     [Unit]
-    Description="Locust Client"
+    Description="Locust Worker"
     Documentation=https://docs.locust.io/en/stable/
     Requires=network-online.target
     After=network-online.target
@@ -52,7 +52,7 @@ runcmd:
 # Install Locust
 - pip3 install locust==1.0.3
 # Enable the service
-- systemctl start locust-client; systemctl enable locust-client
+- systemctl start locust-worker; systemctl enable locust-worker
 
 output: 
   all: '| tee -a /var/log/cloud-init-output.log'
