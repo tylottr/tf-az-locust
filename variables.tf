@@ -107,9 +107,9 @@ locals {
 
   // VM Parameters
   vm_admin_username = "vmadmin"
-  vm_size = "Standard_B1s"
-  vm_disk_type = "StandardSSD_LRS"
-  vm_disk_size = 32
+  vm_size           = "Standard_B1s"
+  vm_disk_type      = "StandardSSD_LRS"
+  vm_disk_size      = 32
 
   // VM Configuration
   locustfile = var.locustfile == null ? file("${path.module}/files/Locustfile.py") : var.locustfile
