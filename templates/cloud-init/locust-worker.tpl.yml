@@ -20,7 +20,7 @@ write_files:
 - path: /opt/locust/Locustfile.py
   content: |
     ${replace(locustfile, "\n", "\n    ")}
-- path: /etc/systemd/system/locust-Worker.service
+- path: /etc/systemd/system/locust-worker.service
   content: |
     [Unit]
     Description="Locust Worker"
