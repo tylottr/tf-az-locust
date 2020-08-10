@@ -14,15 +14,6 @@ locals {
       address_space = format("10.%g.0.0/24", l + 1)
     }
   }
-
-  // Generate name => { vnet, location } map of VMs
-  worker_vms = {
-    for s in setproduct(local.worker_locations, range(var.vm_count)) :
-    format("%s-%s-worker-vm%02d", local.resource_prefix, replace(s[0], " ", ""), s[1] + 1) => {
-      vnet     = format("%s-%s-worker-vnet", local.resource_prefix, replace(s[0], " ", ""))
-      location = s[0]
-    }
-  }
 }
 
 #######################
@@ -92,31 +83,17 @@ resource "azurerm_virtual_network_peering" "main_worker_from_server" {
 # Workers - Compute
 ####################
 
-resource "azurerm_network_interface" "main_worker" {
-  for_each = local.worker_vms
+resource "azurerm_linux_virtual_machine_scale_set" "main_worker" {
+  for_each = toset(local.worker_locations)
 
-  name                = "${each.key}-nic"
-  resource_group_name = azurerm_virtual_network.main_worker[each.value.location].resource_group_name
-  location            = each.value.location
+  name                = replace("${local.resource_prefix}-${each.value}-worker-vmss", " ", "")
+  resource_group_name = azurerm_virtual_network.main_worker[each.value].resource_group_name
+  location            = each.value
   tags                = local.worker_tags
 
-  ip_configuration {
-    name                          = "ipconfig"
-    subnet_id                     = azurerm_subnet.main_worker[each.value.location].id
-    private_ip_address_allocation = "Dynamic"
-  }
-}
+  instances = var.vm_count
 
-resource "azurerm_linux_virtual_machine" "main_worker" {
-  for_each = local.worker_vms
-
-  name                = each.key
-  resource_group_name = azurerm_virtual_network.main_worker[each.value.location].resource_group_name
-  location            = each.value.location
-  tags                = local.worker_tags
-
-  size                  = local.vm_size
-  network_interface_ids = [azurerm_network_interface.main_worker[each.key].id]
+  sku = local.vm_size
 
   admin_username = local.vm_admin_username
   admin_ssh_key {
@@ -147,5 +124,16 @@ resource "azurerm_linux_virtual_machine" "main_worker" {
     offer     = local.vm_os.offer
     sku       = local.vm_os.sku
     version   = "latest"
+  }
+
+  network_interface {
+    name    = replace("${local.resource_prefix}-${each.value}-vmss-nic", " ", "")
+    primary = true
+
+    ip_configuration {
+      name      = "ipconfig"
+      primary   = true
+      subnet_id = azurerm_subnet.main_worker[each.value].id
+    }
   }
 }
