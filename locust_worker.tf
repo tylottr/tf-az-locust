@@ -32,7 +32,7 @@ locals {
 resource "azurerm_network_security_group" "main_worker" {
   for_each = toset(local.worker_locations)
 
-  name                = "${local.resource_prefix}-${replace(each.value, " ", "")}-worker-nsg"
+  name                = replace("${local.resource_prefix}-${each.value}-worker-nsg", " ", "")
   resource_group_name = azurerm_virtual_network.main_worker[each.value].resource_group_name
   location            = each.value
   tags                = local.worker_tags
@@ -80,7 +80,7 @@ resource "azurerm_virtual_network_peering" "main_worker_to_server" {
 resource "azurerm_virtual_network_peering" "main_worker_from_server" {
   for_each = toset(local.worker_locations)
 
-  name                      = "${replace(each.value, " ", "")}-server-to-worker"
+  name                      = replace("${each.value}-server-to-worker", " ", "")
   resource_group_name       = azurerm_resource_group.main.name
   virtual_network_name      = azurerm_virtual_network.main_server.name
   remote_virtual_network_id = azurerm_virtual_network.main_worker[each.value].id

@@ -46,6 +46,7 @@ In Azure, you also need:
 |-|-|
 |resource_group_name|Resource group of the VMs|
 |server_vm_ip|IP of the server VM|
+|server_vm_fqdn|FQDN of the server VM|
 |admin_username|Username of the VM Admin|
 |admin_private_key|Private key data for the vm admin|
 |server_vm_web_access|Information to log into the Locust Server|

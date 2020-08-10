@@ -135,6 +135,7 @@ resource "azurerm_public_ip" "main_server" {
   tags                = local.server_tags
 
   allocation_method = "Dynamic"
+  domain_name_label = "${local.resource_prefix}-server"
 }
 
 resource "azurerm_network_interface" "main_server" {

@@ -12,6 +12,11 @@ output "server_vm_ip" {
   value       = azurerm_public_ip.main_server.ip_address
 }
 
+output "server_vm_fqdn" {
+  description = "FQDN of the server VM"
+  value       = azurerm_public_ip.main_server.fqdn
+}
+
 output "admin_username" {
   description = "Username of the VM Admin"
   value       = local.vm_admin_username
