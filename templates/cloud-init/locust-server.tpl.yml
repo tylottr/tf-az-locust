@@ -16,6 +16,7 @@ packages:
 - git
 - curl
 - python3-pip
+- nginx
 
 write_files:
 - path: /opt/locust/Locustfile.py
@@ -53,6 +54,9 @@ write_files:
   content: |
     username=${storage_account_name}
     password=${storage_share_key}
+- path: /etc/nginx/sites-available/locust
+  content: |
+    ${replace(nginx_conf, "\n", "\n    ")}
 
 mounts:
 - [ "//${storage_share_endpoint}/${storage_share_name}", "/mnt/${storage_share_name}", "cifs", "nofail,vers=3.0,credentials=/etc/smbcredentials/${storage_share_name}.cred,dir_mode=0777,file_mode=0777,serverino" ]
@@ -65,6 +69,13 @@ runcmd:
 - pip3 install locust==1.0.3
 # Enable the service
 - systemctl start locust-server; systemctl enable locust-server
+# Configure and restart Nginx
+- secretsname=$(find /var/lib/waagent/ -name "*.prv" | cut -c -57)
+- mkdir /etc/nginx/ssl
+- cp "$secretsname.crt" /etc/nginx/ssl/locust.crt
+- cp "$secretsname.prv" /etc/nginx/ssl/locust.key
+- ln -s /etc/nginx/sites-available/locust /etc/nginx/sites-enabled/locust
+- systemctl restart nginx
 
 output: 
   all: '| tee -a /var/log/cloud-init-output.log'

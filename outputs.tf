@@ -29,15 +29,6 @@ output "admin_private_key" {
 }
 
 output "server_vm_web_access" {
-  description = "Information to log into the Locust Server"
-  value       = <<EOF
-To access the server follow the below steps for an encrypted connection:
-1. Run the below command
-  ssh ${local.vm_admin_username}@${azurerm_linux_virtual_machine.main_server.public_ip_address} -i ${local_file.main_ssh_private.filename} -L 8080:localhost:8089
-2. Open your browser to http://localhost:8080
-
-OR
-
-1. Visit the following link (This will not be encrypted): http://${azurerm_linux_virtual_machine.main_server.public_ip_address}:8089
-EOF
+  description = "Web access URL to the Locust server"
+  value       = "https://${azurerm_linux_virtual_machine.main_server.public_ip_address}"
 }

@@ -37,6 +37,100 @@ resource "azurerm_role_assignment" "main" {
   principal_id         = azurerm_linux_virtual_machine.main_server.identity[0].principal_id
 }
 
+#######################
+# Server - Certificate
+#######################
+
+resource "azurerm_key_vault" "main" {
+  name                = lower(replace("${local.resource_prefix}kv", "/[-_]/", ""))
+  resource_group_name = azurerm_resource_group.main.name
+  location            = var.location
+  tags                = merge(var.tags, { "locustRole" = "Cert Storage" })
+
+  tenant_id = data.azurerm_client_config.current.tenant_id
+
+  sku_name               = "standard"
+  enabled_for_deployment = true
+
+  access_policy {
+    tenant_id = data.azurerm_client_config.current.tenant_id
+    object_id = data.azurerm_client_config.current.object_id
+
+    certificate_permissions = [
+      "create", "delete", "deleteissuers",
+      "get", "getissuers", "import",
+      "list", "listissuers", "managecontacts",
+      "manageissuers", "setissuers", "update",
+    ]
+  }
+
+  network_acls {
+    default_action             = "Deny"
+    bypass                     = "AzureServices"
+    ip_rules                   = ["${data.http.my_ip.body}/32"]
+    virtual_network_subnet_ids = [azurerm_subnet.main_server.id]
+  }
+}
+
+resource "azurerm_key_vault_access_policy" "main_server" {
+  key_vault_id = azurerm_key_vault.main.id
+
+  tenant_id = data.azurerm_client_config.current.tenant_id
+  object_id = azurerm_linux_virtual_machine.main_server.identity[0].principal_id
+
+  certificate_permissions = ["get"]
+}
+
+resource "azurerm_key_vault_certificate" "main_server" {
+  name         = "locust-server-selfsign"
+  key_vault_id = azurerm_key_vault.main.id
+
+  certificate_policy {
+    issuer_parameters {
+      name = "Self"
+    }
+
+    key_properties {
+      exportable = true
+      key_size   = 2048
+      key_type   = "RSA"
+      reuse_key  = true
+    }
+
+    lifetime_action {
+      action {
+        action_type = "AutoRenew"
+      }
+
+      trigger {
+        days_before_expiry = 30
+      }
+    }
+
+    secret_properties {
+      content_type = "application/x-pkcs12"
+    }
+
+    x509_certificate_properties {
+      key_usage = [
+        "cRLSign",
+        "dataEncipherment",
+        "digitalSignature",
+        "keyAgreement",
+        "keyCertSign",
+        "keyEncipherment",
+      ]
+
+      subject_alternative_names {
+        dns_names = [azurerm_public_ip.main_server.fqdn]
+      }
+
+      subject            = "CN=${azurerm_public_ip.main_server.fqdn}"
+      validity_in_months = 12
+    }
+  }
+}
+
 ######################
 # Server - Networking
 ######################
@@ -85,19 +179,6 @@ resource "azurerm_network_security_group" "main_server" {
     destination_address_prefix = "*"
     destination_port_range     = "443"
   }
-
-  security_rule {
-    name                       = "AllowHTTPLocustinBound"
-    description                = "Allow HTTP Locust traffic to reach all inbound networks"
-    direction                  = "Inbound"
-    priority                   = "1100"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_address_prefix      = "${data.http.my_ip.body}/32"
-    source_port_range          = "*"
-    destination_address_prefix = "*"
-    destination_port_range     = "8089"
-  }
 }
 
 resource "azurerm_virtual_network" "main_server" {
@@ -116,7 +197,7 @@ resource "azurerm_subnet" "main_server" {
   virtual_network_name = azurerm_virtual_network.main_server.name
   address_prefixes     = [azurerm_virtual_network.main_server.address_space[0]]
 
-  service_endpoints = ["Microsoft.Storage"]
+  service_endpoints = ["Microsoft.Storage", "Microsoft.KeyVault"]
 }
 
 resource "azurerm_subnet_network_security_group_association" "main_server" {
@@ -174,6 +255,7 @@ resource "azurerm_linux_virtual_machine" "main_server" {
       "ssh_public_key" = tls_private_key.main_ssh.public_key_openssh
 
       "locustfile" = local.locustfile
+      "nginx_conf" = local.nginx_conf
 
       "server_address" = azurerm_network_interface.main_server.private_ip_address
 
@@ -199,5 +281,12 @@ resource "azurerm_linux_virtual_machine" "main_server" {
 
   identity {
     type = "SystemAssigned"
+  }
+
+  secret {
+    key_vault_id = azurerm_key_vault.main.id
+    certificate {
+      url = azurerm_key_vault_certificate.main_server.secret_id
+    }
   }
 }

@@ -113,4 +113,5 @@ locals {
 
   // VM Configuration
   locustfile = var.locustfile == null ? file("${path.module}/files/Locustfile.py") : var.locustfile
+  nginx_conf = templatefile("${path.module}/templates/nginx.tpl.conf", { "server_name" = azurerm_public_ip.main_server.fqdn })
 }

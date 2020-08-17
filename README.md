@@ -49,7 +49,7 @@ In Azure, you also need:
 |server_vm_fqdn|FQDN of the server VM|
 |admin_username|Username of the VM Admin|
 |admin_private_key|Private key data for the vm admin|
-|server_vm_web_access|Information to log into the Locust Server|
+|server_vm_web_access|Web access URL to the Locust server|
 
 ## Deployment
 
